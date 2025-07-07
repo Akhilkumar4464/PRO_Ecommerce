@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { fetchProducts } from "../index.js";
 
 function ProductCatalog() {
   const [products, setProducts] = useState([]);
@@ -6,31 +7,12 @@ function ProductCatalog() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const getProducts = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-         'https://real-time-amazon-data.p.rapidapi.com/influencer-profile?influencer_name=tastemade&country=US',
-      
-          {
-            method: "GET",
-            headers: {
-              "x-rapidapi-key":
-                "5a7456ba40msh1d8a1673153a702p17c13ajsn8be768989851",
-              "x-rapidapi-host": "real-time-amazon-data.p.rapidapi.com",
-            },
-          
-          }
-         
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-           
-        }
-        const data = await response.json();
-        // Assuming the products are in data.products or similar structure
-        setProducts(data.products || []);
+        const data = await fetchProducts();
+        setProducts(data || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -38,7 +20,7 @@ function ProductCatalog() {
       }
     };
 
-    fetchProducts();
+    getProducts();
   }, []);
 
   if (loading) {
@@ -73,12 +55,12 @@ function ProductCatalog() {
           {product.image && (
             <img
               src={product.image}
-              alt={product.name}
+              alt={product.title}
               className="w-28 h-28 object-cover rounded-xl mb-4"
             />
           )}
           <h3 className="text-xl font-bold text-gray-800 mb-2 text-center">
-            {product.name}
+            {product.title}
           </h3>
           <p className="text-gray-600 text-center mb-2">
             {product.description}
