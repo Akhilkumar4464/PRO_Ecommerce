@@ -76,7 +76,7 @@ function Header() {
             to="/"
             className="text-2xl font-bold tracking-tight text-gray-900 hover:text-indigo-600 transition duration-300"
           >
-            E-Commerce
+          Sharma Store
           </Link>
 
           {/* Search Bar - Desktop */}
