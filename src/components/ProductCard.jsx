@@ -16,33 +16,68 @@ function ProductCard() {
 
   // Load cart from localStorage on component mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
+    const fetchCart = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/cart');
+        if (response.ok) {
+          const cartItems = await response.json();
+          setCart(cartItems);
+        } else {
+          console.error('Failed to fetch cart');
+        }
+      } catch (error) {
+        console.error('Error fetching cart:', error);
+      }
+    };
+    fetchCart();
   }, []);
 
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+  // Save cart to backend whenever it changes
+  // (optional: can be removed if all updates go through API calls)
+  // useEffect(() => {
+  //   // No localStorage usage anymore
+  // }, [cart]);
 
-  const addToCart = (product) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.id === product.id);
-      
-      if (existingItem) {
-        // If item exists, increase quantity
-        return prevCart.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        // If item doesn't exist, add new item
-        return [...prevCart, { ...product, quantity: 1 }];
+  const addToCart = async (product) => {
+    const existingItem = cart.find(item => item.id === product.id);
+    if (existingItem) {
+      const updatedItem = { ...existingItem, quantity: existingItem.quantity + 1 };
+      try {
+        const response = await fetch('http://localhost:5000/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedItem),
+        });
+        if (response.ok) {
+          setCart(prevCart =>
+            prevCart.map(item =>
+              item.id === product.id ? updatedItem : item
+            )
+          );
+        } else {
+          console.error('Failed to update cart item');
+        }
+      } catch (error) {
+        console.error('Error updating cart item:', error);
       }
-    });
+    } else {
+      const newItem = { ...product, quantity: 1 };
+      try {
+        const response = await fetch('http://localhost:5000/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newItem),
+        });
+        if (response.ok) {
+          const savedItem = await response.json();
+          setCart(prevCart => [...prevCart, savedItem]);
+        } else {
+          console.error('Failed to add cart item');
+        }
+      } catch (error) {
+        console.error('Error adding cart item:', error);
+      }
+    }
 
     // Show visual feedback
     setAddedItems(prev => new Set([...prev, product.id]));

@@ -15,29 +15,30 @@ function Header() {
     { to: "/contact", label: "Contact" },
   ];
 
-  // Update cart count from localStorage
+  // Update cart count from backend
   useEffect(() => {
-    const updateCartCount = () => {
-      const savedCart = localStorage.getItem('cart');
-      if (savedCart) {
-        const cart = JSON.parse(savedCart);
-        const count = cart.reduce((total, item) => total + item.quantity, 0);
-        setCartCount(count);
-      } else {
+    const updateCartCount = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/cart');
+        if (response.ok) {
+          const cart = await response.json();
+          const count = cart.reduce((total, item) => total + item.quantity, 0);
+          setCartCount(count);
+        } else {
+          setCartCount(0);
+        }
+      } catch (error) {
+        console.error('Error fetching cart count:', error);
         setCartCount(0);
       }
     };
 
     updateCartCount();
 
-    // Listen for storage changes
-    window.addEventListener('storage', updateCartCount);
-    
-    // Also update when the component mounts and when localStorage changes
-    const interval = setInterval(updateCartCount, 1000);
+    // Update cart count periodically
+    const interval = setInterval(updateCartCount, 2000);
 
     return () => {
-      window.removeEventListener('storage', updateCartCount);
       clearInterval(interval);
     };
   }, []);

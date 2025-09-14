@@ -5,60 +5,115 @@ function CartCatalog() {
   const [loading, setLoading] = useState(true);
   const [showProducts, setShowProducts] = useState(true);
 
-  useEffect(() => {
-    // Load cart from localStorage
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-    setLoading(false);
-  }, []);
+  const API_BASE_URL = 'http://localhost:5000/api';
 
-  const handleDeleteProduct = (productId) => {
-    setCart((prevCart) => {
-      const newCart = prevCart.filter(item => item.id !== productId);
-      localStorage.setItem('cart', JSON.stringify(newCart));
-      return newCart;
-    });
+  const fetchCart = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`);
+      if (response.ok) {
+        const cartItems = await response.json();
+        setCart(cartItems);
+      } else {
+        console.error('Failed to fetch cart');
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateQuantity = (productId, newQuantity) => {
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const handleDeleteProduct = async (productId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart/${productId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setCart((prevCart) => prevCart.filter(item => item.id !== productId));
+      } else {
+        console.error('Failed to delete item');
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  const handleUpdateQuantity = async (productId, newQuantity) => {
     if (newQuantity <= 0) {
-      handleDeleteProduct(productId);
+      await handleDeleteProduct(productId);
       return;
     }
 
-    setCart((prevCart) => {
-      const newCart = prevCart.map(item =>
-        item.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      );
-      localStorage.setItem('cart', JSON.stringify(newCart));
-      return newCart;
-    });
+    const item = cart.find(item => item.id === productId);
+    if (item) {
+      const updatedItem = { ...item, quantity: newQuantity };
+      try {
+        const response = await fetch(`${API_BASE_URL}/cart`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedItem),
+        });
+        if (response.ok) {
+          setCart((prevCart) =>
+            prevCart.map(item =>
+              item.id === productId ? updatedItem : item
+            )
+          );
+        } else {
+          console.error('Failed to update quantity');
+        }
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+      }
+    }
   };
  
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (cart.length === 0) {
       alert('Your cart is empty!');
       return;
     }
-    
+
     const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
     const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-    
+
     alert(`Order placed successfully!\nTotal items: ${totalItems}\nTotal price: $${totalPrice.toFixed(2)}`);
-    
+
     // Clear cart after successful purchase
-    setCart([]);
-    localStorage.removeItem('cart');
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setCart([]);
+      } else {
+        console.error('Failed to clear cart after purchase');
+      }
+    } catch (error) {
+      console.error('Error clearing cart after purchase:', error);
+    }
   };
 
-  const clearCart = () => {
+  const clearCart = async () => {
     if (window.confirm('Are you sure you want to clear your cart?')) {
-      setCart([]);
-      localStorage.removeItem('cart');
+      try {
+        const response = await fetch(`${API_BASE_URL}/cart`, {
+          method: 'DELETE',
+        });
+        if (response.ok) {
+          setCart([]);
+        } else {
+          console.error('Failed to clear cart');
+        }
+      } catch (error) {
+        console.error('Error clearing cart:', error);
+      }
     }
   };
 
